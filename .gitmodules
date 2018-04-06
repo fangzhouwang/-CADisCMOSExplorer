@@ -1,0 +1,3 @@
+[submodule "ArkLibPy"]
+	path = ArkLibPy
+	url = https://github.com/fangzhouwang/ArkLibPy.git
