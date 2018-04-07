@@ -74,6 +74,9 @@ class Netlist:
         else:
             return 'supply'
 
+    def get_netlist_string(self):
+        return str(self)
+
     def get_node(self, name, node_dict):
         if name not in self.node_dicts_[node_dict]:
             self.node_dicts_[node_dict][name] = Node(name)
