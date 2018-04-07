@@ -18,8 +18,8 @@ class ISOEliminator:
                                                [id_cell])
         self.netlist_.set_netlist(src_netlist)
         query = f'SELECT Q.ID FROM '\
-                '(SELECT idCELL AS ID, CELL_NETLIST AS Netlist FROM {self.table_} WHERE CELL_BSF_UNIFIED=%s)'\
-                ' AS Q WHERE Q.Netlist IN ('
+                f'(SELECT idCELL AS ID, CELL_NETLIST AS Netlist FROM {self.table_} WHERE CELL_BSF_UNIFIED=%s)'\
+                f' AS Q WHERE Q.Netlist IN ('
         temp = "', '".join(self.netlist_.get_equ_netlists())
         temp = "'" + temp + "'"
         query += temp
