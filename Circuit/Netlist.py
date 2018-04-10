@@ -34,13 +34,14 @@ class Node:
 
 class Netlist:
     def __init__(self):
-        self.p_transistors_ = list()
         self.n_transistors_ = list()
+        self.p_transistors_ = list()
         self.node_dicts_ = dict()
         self.node_dicts_['in'] = dict()
         self.node_dicts_['out'] = dict()
         self.node_dicts_['internal'] = dict()
         self.node_dicts_['supply'] = dict()
+        self.transistor_cnt = 0
 
     def __str__(self):
         ret = ''
@@ -90,24 +91,71 @@ class Netlist:
         self.node_dicts_['out'] = dict()
         self.node_dicts_['internal'] = dict()
         self.node_dicts_['supply'] = dict()
+        self.transistor_cnt = 0
+
+    def add_transistor(self, str_transistor):
+        items = str_transistor.rstrip().split(' ')
+        temp_transistor = Transistor(items[0], items[5])
+        if temp_transistor.t_type_ == 'PMOS':
+            self.p_transistors_.append(temp_transistor)
+        else:
+            self.n_transistors_.append(temp_transistor)
+
+        # In CADis data structure, index 0 is gate, 1 and 2 are diffusion
+        # In SPICE data structure, index 1 is gate, 0 and 2 are diffusion
+        items[1], items[2] = items[2], items[1]
+        for i in range(1, 4):
+            temp_node = self.get_node(items[i], self.get_set_name_for_node(items[i]))
+            temp_transistor.get_terminal(i-1).set_node(temp_node)
+
+        self.transistor_cnt += 1
+
+    def remove_transistor(self, name, update_name=True):
+        target_transistor = None
+        for transistor in self.n_transistors_:
+            if transistor.get_name() == name:
+                target_transistor = transistor
+                self.n_transistors_.remove(target_transistor)
+                break
+        else:
+            for transistor in self.p_transistors_:
+                if transistor.get_name() == name:
+                    target_transistor = transistor
+                    self.p_transistors_.remove(target_transistor)
+                    break
+            else:
+                raise ValueError(f'{name} not found')
+
+        self.transistor_cnt -= 1
+
+        # restore the internal data structure of the netlist
+        if update_name:
+            self.update_transistor_names()
+        str_netlist = self.get_netlist_string()
+        self.set_netlist(str_netlist)
+
+        return target_transistor
+
+    def update_transistor_names(self):
+        tx_cnt = 1
+        for transistor in self.get_transistors():
+            transistor.set_name(f'M{tx_cnt:04}')
+            tx_cnt += 1
+
+    def get_transistors(self):
+        for transistor in self.n_transistors_:
+            yield transistor
+        for transistor in self.p_transistors_:
+            yield transistor
+
+    def get_transistors_cnt(self):
+        return self.transistor_cnt
 
     def set_netlist(self, str_netlist):
         self.reset_netlist()
         str_transistors = str_netlist.rstrip().split("\n")
         for str_transistor in str_transistors:
-            items = str_transistor.rstrip().split(' ')
-            temp_transistor = Transistor(items[0], items[5])
-            if temp_transistor.t_type_ == 'PMOS':
-                self.p_transistors_.append(temp_transistor)
-            else:
-                self.n_transistors_.append(temp_transistor)
-
-            # In CADis data structure, index 0 is gate, 1 and 2 are diffusion
-            # In SPICE data structure, index 1 is gate, 0 and 2 are diffusion
-            items[1], items[2] = items[2], items[1]
-            for i in range(1, 4):
-                temp_node = self.get_node(items[i], self.get_set_name_for_node(items[i]))
-                temp_transistor.get_terminal(i-1).set_node(temp_node)
+            self.add_transistor(str_transistor)
 
     @staticmethod
     def update_names_for_obj(name_list, obj_list):
@@ -154,3 +202,4 @@ class Netlist:
         self.update_names_for_obj(in_names, in_nodes)
         self.update_names_for_obj(internal_names, internal_nodes)
         self.update_names_for_obj(out_names, out_nodes)
+
