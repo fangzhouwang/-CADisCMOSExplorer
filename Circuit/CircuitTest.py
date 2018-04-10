@@ -1,5 +1,15 @@
 import unittest
 from Circuit.Netlist import *
+from Circuit.CSim import *
+
+
+class CSimTestCase(unittest.TestCase):
+    def test_csim(self):
+        str_netlist = "M0001 GND IN001 OUT01 GND NMOS\n" \
+                      "M0002 VDD IN001 OUT01 VDD PMOS\n"
+        bsf, bsf_weak = csim(str_netlist)
+        self.assertEqual(bsf, '10')
+        self.assertEqual(bsf_weak, '10')
 
 
 class NetlistTestCase(unittest.TestCase):
@@ -73,6 +83,45 @@ class NetlistTestCase(unittest.TestCase):
                 temp_netlist += line
         self.assertEqual(len(equ_netlists), len(list(netlist.get_equ_netlists())))
         self.assertCountEqual(equ_netlists, netlist.get_equ_netlists())
+
+    def test_update_transistors(self):
+        netlist = Netlist()
+        str_netlist = "M0003 N0002 IN001 N0001 GND NMOS\n" \
+                      "M0008 VDD N0001 N0002 GND NMOS\n" \
+                      "M0001 N0001 IN001 IN002 VDD PMOS\n" \
+                      "M0003 OUT01 N0001 IN002 VDD PMOS\n"
+        netlist.set_netlist(str_netlist)
+        netlist.update_transistor_names()
+        cnt = 1
+        for transistor in netlist.get_transistors():
+            self.assertEqual(int(transistor.get_name()[1:]), cnt)
+            cnt += 1
+
+    def test_remove_transistor(self):
+        netlist = Netlist()
+        str_netlist = "M0003 N0002 IN001 N0001 GND NMOS\n" \
+                      "M0008 VDD N0001 N0002 GND NMOS\n" \
+                      "M0001 N0001 IN001 IN002 VDD PMOS\n" \
+                      "M0003 OUT01 N0001 IN002 VDD PMOS\n"
+        netlist.set_netlist(str_netlist)
+        netlist.remove_transistor("M0008")
+        str_netlist = "M0001 N0002 IN001 N0001 GND NMOS\n" \
+                      "M0002 N0001 IN001 IN002 VDD PMOS\n" \
+                      "M0003 OUT01 N0001 IN002 VDD PMOS\n"
+        self.assertEqual(str_netlist, netlist.get_netlist_string())
+
+    def test_remove_transistor_with_dup(self):
+        netlist = Netlist()
+        str_netlist = "M0003 N0002 IN001 N0001 GND NMOS\n" \
+                      "M0008 VDD N0001 N0002 GND NMOS\n" \
+                      "M0001 N0001 IN001 IN002 VDD PMOS\n" \
+                      "M0003 OUT01 N0001 IN002 VDD PMOS\n"
+        netlist.set_netlist(str_netlist)
+        netlist.remove_transistor("M0003")
+        str_netlist = "M0001 VDD N0001 N0002 GND NMOS\n" \
+                      "M0002 N0001 IN001 IN002 VDD PMOS\n" \
+                      "M0003 OUT01 N0001 IN002 VDD PMOS\n"
+        self.assertEqual(str_netlist, netlist.get_netlist_string())
 
 
 if __name__ == '__main__':
