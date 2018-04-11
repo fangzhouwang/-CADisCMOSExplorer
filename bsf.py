@@ -129,19 +129,12 @@ def update_bsf_uni_for_table(bsf_col, target_lib, db_config_file, start, cnt, fo
             print(f'{bsf_col}_UNIFIED column is set for all entries, skipping...')
             return
 
+    # TODO: add fast mode, in which only null entries are selected and updated
     query = f'SELECT * FROM BSF_LIB LIMIT {start},{cnt}'
     uni_bsf_arr = db.run_query_get_all_row(query)
 
     runner_idx = start // cnt
-    for row in tqdm(uni_bsf_arr, desc=f'Update BSF_UNI[{runner_idx:02}]'):
-        res = db.run_query_get_all_row(f'SELECT idCELL FROM {target_lib} WHERE {bsf_col} = %s',
-                                       [row['BSF'].decode("utf-8")])
-        id_list = list()
-        for record in res:
-            id_list.append(record['idCELL'])
-        if len(id_list) == 0:
-            continue
-        id_list_str = ', '.join(map(lambda s: '{}'.format(s), id_list))
-        db.run_sql_nocommit(f'UPDATE {target_lib} SET {bsf_col}_UNIFIED = %s WHERE idCELL in ({id_list_str})',
-                            [row['BSF_UNI'].decode("utf-8")])
+    for row in tqdm(uni_bsf_arr, desc=f'Update {bsf_col}_UNI[{runner_idx:02}]'):
+        db.run_sql_nocommit(f'UPDATE {target_lib} SET {bsf_col}_UNIFIED = %s WHERE {bsf_col} = %s',
+                            [row['BSF_UNI'].decode("utf-8"), row['BSF'].decode("utf-8")])
     db.commit()
