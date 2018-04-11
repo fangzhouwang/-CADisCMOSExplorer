@@ -174,8 +174,7 @@ def clean_up(table, db_config, source='RAW_DATA_LIB'):
     print('--- number of cells before cleaning up ---')
     print(get_cell_cnt(table, db_config))
 
-    # setup UNI bsf - about 3 hours for 1~5-t cells
-    print('--- updating bsf_unified, this may take about 3 hours ---')
+    print('--- updating bsf_unified ---')
     update_bsf_uni('CELL_BSF', table, db_config, get_num_cores())
 
     print('--- removing constant cells ---')
@@ -183,7 +182,7 @@ def clean_up(table, db_config, source='RAW_DATA_LIB'):
     print('--- removing cells with redundant inputs ---')
     remove_redundant_input(table, db_config)
 
-    print('--- updating bsf_weak_unified, this may take about 3 hours ---')
+    print('--- updating bsf_weak_unified ---')
     update_bsf_uni('CELL_BSF_weak', table, db_config, get_num_cores())
     create_indexes(table, db_config, [
         'CELL_BSF_UNIFIED',
@@ -207,4 +206,4 @@ if __name__ == '__main__':
         print(f'Error: DB_Config is not setup for {sys.platform} yet.')
         exit(1)
 
-    clean_up('ONE_FIVE_LIB', local_db_config, source='WORK_LIB')
+    clean_up('ONE_FIVE_LIB', local_db_config)
