@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 
 from Eliminate_structural_iso import *
+from Eliminate_nonminimal import *
+from joblib import Parallel, delayed
+import multiprocessing
+import sys
 
 
 def duplicate_table(new_table, source_table, db_config, copy_indexes_n_triggers=True):
@@ -82,7 +86,17 @@ def remove_redundant_input(table, db_config):
 def remove_iso_cells(table, db_config):
     elm = ISOEliminator(db_config, table)
     elm.eliminate_iso()
+    print(get_cell_cnt(table, db_config))
 
+
+def process_remove_nonminimal(db_config, table, limit):
+    elm = NonminimalEliminator(db_config, table)
+    return elm.eliminate_nonminimal_cells(limit[0], limit[1])
+
+
+def remove_nonminimal(table, db_config):
+    Parallel(n_jobs=num_cores)\
+        (delayed(process_remove_nonminimal)(db_config, table, i) for i in prepare(db_config, table, num_cores))
     print(get_cell_cnt(table, db_config))
 
 
@@ -122,17 +136,49 @@ def clean_up(table, db_config, source='RAW_DATA_LIB'):
     # remove_iso_cells(table, db_config)
 
 
+def gen_limits(total_cnt, n_jobs):
+    ret = list()
+    if total_cnt < n_jobs:
+        size = 1
+        remain = 0
+    else:
+        size = total_cnt // n_jobs
+        remain = total_cnt - size * n_jobs
+
+    for start in range(0, total_cnt-remain, size):
+        ret.append([start, size])
+    else:
+        # add the remain number to the last item in the list
+        ret[-1][1] += remain
+
+    if total_cnt < n_jobs:
+        for i in range(n_jobs-total_cnt):
+            ret.append([0, 0])
+
+    return ret
+
+
+def prepare(db_config, table, n_jobs):
+    db = ArkDBMySQL(db_config_file=db_config)
+    item_cnt = db.get_query_value('CNT', f'SELECT count(*) AS CNT FROM {table}')
+    return gen_limits(item_cnt, n_jobs)
+
+
 if __name__ == '__main__':
-    # local_db_config = '/Users/Ark/.db_configs/db_config_local_cadis.txt'
-    # local_db_config = '/home/fangzhou/.db_configs/db_config_local_cadis.txt'
-    # local_db_config = '/Users/Ark/.db_configs/db_config_dfx_cadis.txt'
+    if sys.platform == 'linux':
+        local_db_config = '/Users/Ark/.db_configs/db_config_local_cadis.txt'
+    elif sys.platform == 'darwin':
+        local_db_config = '/Users/Ark/.db_configs/db_config_local_cadis.txt'
+    else:
+        local_db_config = 'ERROR'
+        print(f'Error: DB_Config is not setup for {sys.platform} yet.')
+        exit(1)
 
-    local_db_config = '/Users/Ark/.db_configs/db_config_dfx_cadis.txt'
-    # clean_up('NO_ISO_LIB', db_config)
     # clean_up('ONE_FIVE_LIB', db_config)
-    local_db = ArkDBMySQL(db_config_file=local_db_config)
-    local_db.set_table('ONE_FIVE_LIB')
 
-    print(local_db.get_table_disk_size())
-    local_db.optimize()
-    print(local_db.get_table_disk_size())
+    num_cores = multiprocessing.cpu_count() - 2
+    if num_cores < 1:
+        num_cores = 1
+
+    duplicate_table('NON_MINI_TEST', 'WORK_LIB', local_db_config)
+    remove_nonminimal('NON_MINI_TEST', local_db_config)
