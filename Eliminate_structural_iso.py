@@ -19,13 +19,14 @@ class ISOEliminator:
         id_list.remove(id_cell)
         return id_list
 
-    def eliminate_iso(self):
-        query = f'SELECT DISTINCT CELL_BSF_UNIFIED FROM {self.table_} WHERE CELL_BSF_UNIFIED is not null'
+    def eliminate_iso(self, start, cnt):
+        query = f'SELECT DISTINCT CELL_BSF_UNIFIED FROM {self.table_} LIMIT {start},{cnt}'
         bsf_uni_list = list()
         for row in self.db_.run_query_get_all_row(query):
             bsf_uni_list.append(row['CELL_BSF_UNIFIED'].decode("utf-8"))
 
-        for bsf in tqdm(bsf_uni_list, desc='Eliminating: '):
+        runner_idx = start // cnt
+        for bsf in tqdm(bsf_uni_list, desc=f'Eliminating str iso[{runner_idx:02}]:'):
             query = f'SELECT idCELL FROM {self.table_} WHERE CELL_BSF_UNIFIED=%s'
             id_list = list()
             removed_ids = set()

@@ -119,12 +119,21 @@ def create_bsf_table(input_cnt, db_config_file):
     db.commit()
 
 
-def update_bsf_uni_for_table(bsf_col, target_lib, db_config_file):
+def update_bsf_uni_for_table(bsf_col, target_lib, db_config_file, start, cnt, force=False):
     db = ArkDBMySQL(db_config_file=db_config_file)
-    query = 'SELECT * FROM BSF_LIB'
+
+    if not force:
+        unset_entry_cnt = db.get_query_value('CNT', f'SELECT COUNT(*) AS CNT FROM {target_lib} '
+                                                    f'WHERE {bsf_col}_UNIFIED is null')
+        if unset_entry_cnt == 0:
+            print(f'{bsf_col}_UNIFIED column is set for all entries, skipping...')
+            return
+
+    query = f'SELECT * FROM BSF_LIB LIMIT {start},{cnt}'
     uni_bsf_arr = db.run_query_get_all_row(query)
 
-    for row in tqdm(uni_bsf_arr, desc='Update BSF_UNI'):
+    runner_idx = start // cnt
+    for row in tqdm(uni_bsf_arr, desc=f'Update BSF_UNI[{runner_idx:02}]'):
         res = db.run_query_get_all_row(f'SELECT idCELL FROM {target_lib} WHERE {bsf_col} = %s',
                                        [row['BSF'].decode("utf-8")])
         id_list = list()
@@ -136,14 +145,3 @@ def update_bsf_uni_for_table(bsf_col, target_lib, db_config_file):
         db.run_sql_nocommit(f'UPDATE {target_lib} SET {bsf_col}_UNIFIED = %s WHERE idCELL in ({id_list_str})',
                             [row['BSF_UNI'].decode("utf-8")])
     db.commit()
-
-
-if __name__ == '__main__':
-    if len(sys.argv != 4):
-        print('item, table, db_config')
-        exit(1)
-    item = sys.argv[1]
-    table = sys.argv[2]
-    db_config = sys.argv[3]
-    # db_config = '/home/fangzhou/.db_configs/db_config_local_cadis.txt'
-    update_bsf_uni_for_table(item, table, db_config)
