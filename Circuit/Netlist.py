@@ -5,7 +5,8 @@ import itertools
 
 
 class Node:
-    def __init__(self, name):
+    def __init__(self, name, netlist):
+        self.owner_ = netlist
         self.name_ = name
         self.terminals = set()
 
@@ -27,6 +28,11 @@ class Node:
     def remove_terminal(self, terminal):
         if terminal in self.terminals:
             self.terminals.remove(terminal)
+        else:
+            raise ValueError(f'terminal {terminal.get_node().get_name()} '
+                             f'does not belong to {self.get_name()}. Please check id!')
+        if len(self.terminals) == 0:
+            self.owner_.remove_node(self)
 
     def add_terminal(self, terminal):
         self.terminals.add(terminal)
@@ -78,10 +84,15 @@ class Netlist:
     def get_netlist_string(self):
         return str(self)
 
-    def get_node(self, name, node_dict):
-        if name not in self.node_dicts_[node_dict]:
-            self.node_dicts_[node_dict][name] = Node(name)
-        return self.node_dicts_[node_dict][name]
+    def get_node(self, name):
+        node_dict_name = self.get_set_name_for_node(name)
+        if name not in self.node_dicts_[node_dict_name]:
+            self.node_dicts_[node_dict_name][name] = Node(name, self)
+        return self.node_dicts_[node_dict_name][name]
+
+    def remove_node(self, node):
+        node_dict_name = self.get_set_name_for_node(node.get_name())
+        del self.node_dicts_[node_dict_name][node.get_name()]
 
     def reset_netlist(self):
         self.p_transistors_.clear()
@@ -105,12 +116,12 @@ class Netlist:
         # In SPICE data structure, index 1 is gate, 0 and 2 are diffusion
         items[1], items[2] = items[2], items[1]
         for i in range(1, 4):
-            temp_node = self.get_node(items[i], self.get_set_name_for_node(items[i]))
+            temp_node = self.get_node(items[i])
             temp_transistor.get_terminal(i-1).set_node(temp_node)
 
         self.transistor_cnt += 1
 
-    def remove_transistor(self, name, update_name=True):
+    def remove_transistor(self, name, update_name=False):
         target_transistor = None
         for transistor in self.n_transistors_:
             if transistor.get_name() == name:
@@ -135,6 +146,31 @@ class Netlist:
         self.set_netlist(str_netlist)
 
         return target_transistor
+
+    def short_transistor(self, name):
+        gate_node_name = None
+        for transistor in self.get_transistors():
+            if transistor.get_name() == name:
+                gate_term = transistor.get_terminal(Transistor.terminal_type['gate'])
+                gate_node_name = gate_term.get_name()
+                always_on_node_name = 'VDD'
+                if transistor.get_type() == 'PMOS':
+                    always_on_node_name = 'GND'
+                gate_term.set_node(self.get_node(always_on_node_name))
+                break
+        else:
+            raise ValueError(f'{name} not found')
+
+        return gate_node_name
+
+    def unshort_transistor(self, name, gate_name):
+        for transistor in self.get_transistors():
+            if transistor.get_name() == name:
+                gate_term = transistor.get_terminal(Transistor.terminal_type['gate'])
+                gate_term.set_node(self.get_node(gate_name))
+                break
+        else:
+            raise ValueError(f'{name} not found')
 
     def update_transistor_names(self):
         tx_cnt = 1

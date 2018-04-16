@@ -104,7 +104,7 @@ class NetlistTestCase(unittest.TestCase):
                       "M0001 N0001 IN001 IN002 VDD PMOS\n" \
                       "M0003 OUT01 N0001 IN002 VDD PMOS\n"
         netlist.set_netlist(str_netlist)
-        netlist.remove_transistor("M0008")
+        netlist.remove_transistor("M0008", True)
         str_netlist = "M0001 N0002 IN001 N0001 GND NMOS\n" \
                       "M0002 N0001 IN001 IN002 VDD PMOS\n" \
                       "M0003 OUT01 N0001 IN002 VDD PMOS\n"
@@ -117,10 +117,43 @@ class NetlistTestCase(unittest.TestCase):
                       "M0001 N0001 IN001 IN002 VDD PMOS\n" \
                       "M0003 OUT01 N0001 IN002 VDD PMOS\n"
         netlist.set_netlist(str_netlist)
-        netlist.remove_transistor("M0003")
+        netlist.remove_transistor("M0003", True)
         str_netlist = "M0001 VDD N0001 N0002 GND NMOS\n" \
                       "M0002 N0001 IN001 IN002 VDD PMOS\n" \
                       "M0003 OUT01 N0001 IN002 VDD PMOS\n"
+        self.assertEqual(str_netlist, netlist.get_netlist_string())
+
+    def test_short_transistor_with_auto_node_removal(self):
+        netlist = Netlist()
+        str_netlist = "M0001 OUT01 N0001 IN002 VDD PMOS\n"
+        netlist.set_netlist(str_netlist)
+        self.assertEqual(len(netlist.node_dicts_[netlist.get_set_name_for_node('N0001')]), 1)
+        old_gate_name = netlist.short_transistor('M0001')
+        self.assertEqual(old_gate_name, 'N0001')
+        self.assertEqual(len(netlist.node_dicts_[netlist.get_set_name_for_node('N0001')]), 0)
+
+    def test_short_transistor_without_auto_node_removal(self):
+        netlist = Netlist()
+        str_netlist = "M0001 VDD N0001 N0002 GND NMOS\n" \
+                      "M0002 N0001 IN001 IN002 VDD PMOS\n" \
+                      "M0003 OUT01 N0001 IN002 VDD PMOS\n"
+        netlist.set_netlist(str_netlist)
+        self.assertEqual(len(netlist.node_dicts_[netlist.get_set_name_for_node('N0001')]), 2)
+        old_gate_name = netlist.short_transistor('M0001')
+        self.assertEqual(old_gate_name, 'N0001')
+        self.assertEqual(len(netlist.node_dicts_[netlist.get_set_name_for_node('N0001')]), 2)
+
+    def test_unshort_transistor(self):
+        netlist = Netlist()
+        str_netlist = "M0001 OUT01 N0001 IN002 VDD PMOS\n"
+        netlist.set_netlist(str_netlist)
+        self.assertEqual(len(netlist.node_dicts_[netlist.get_set_name_for_node('N0001')]), 1)
+        old_gate_name = netlist.short_transistor('M0001')
+        self.assertEqual(old_gate_name, 'N0001')
+        self.assertEqual(len(netlist.node_dicts_[netlist.get_set_name_for_node('N0001')]), 0)
+
+        netlist.unshort_transistor('M0001', old_gate_name)
+        self.assertEqual(len(netlist.node_dicts_[netlist.get_set_name_for_node('N0001')]), 1)
         self.assertEqual(str_netlist, netlist.get_netlist_string())
 
 
