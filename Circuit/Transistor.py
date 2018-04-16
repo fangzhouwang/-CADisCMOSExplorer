@@ -20,6 +20,12 @@ class Terminal:
         node.add_terminal(self)
         self.node_ = node
 
+    def get_node(self):
+        return self.node_
+
+    def get_name(self):
+        return self.node_.get_name()
+
 
 class Transistor:
     terminal_type = dict(gate=0, drain=1, source=2)
@@ -44,6 +50,9 @@ class Transistor:
 
     def get_name(self):
         return self.name_
+
+    def get_type(self):
+        return self.t_type_
 
     def get_description(self, reverse_diffusions=False):
         ret = ''
