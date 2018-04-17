@@ -121,21 +121,18 @@ class Netlist:
 
         self.transistor_cnt += 1
 
-    def remove_transistor(self, name, update_name=False):
-        target_transistor = None
-        for transistor in self.n_transistors_:
+    def get_transistor(self, name):
+        for transistor in self.get_transistors():
             if transistor.get_name() == name:
-                target_transistor = transistor
-                self.n_transistors_.remove(target_transistor)
-                break
+                return transistor
+        raise ValueError(f'{name} not found')
+
+    def remove_transistor(self, name, update_name=False):
+        target_transistor = self.get_transistor(name)
+        if target_transistor.get_type() == 'PMOS':
+            self.p_transistors_.remove(target_transistor)
         else:
-            for transistor in self.p_transistors_:
-                if transistor.get_name() == name:
-                    target_transistor = transistor
-                    self.p_transistors_.remove(target_transistor)
-                    break
-            else:
-                raise ValueError(f'{name} not found')
+            self.n_transistors_.remove(target_transistor)
 
         self.transistor_cnt -= 1
 
@@ -147,30 +144,23 @@ class Netlist:
 
         return target_transistor
 
-    def short_transistor(self, name):
-        gate_node_name = None
-        for transistor in self.get_transistors():
-            if transistor.get_name() == name:
-                gate_term = transistor.get_terminal(Transistor.terminal_type['gate'])
-                gate_node_name = gate_term.get_name()
-                always_on_node_name = 'VDD'
-                if transistor.get_type() == 'PMOS':
-                    always_on_node_name = 'GND'
-                gate_term.set_node(self.get_node(always_on_node_name))
-                break
-        else:
-            raise ValueError(f'{name} not found')
+    def replace_transistor_gate(self, name, gate_name):
+        transistor = self.get_transistor(name)
+        gate_term = transistor.get_terminal(Transistor.terminal_type['gate'])
 
-        return gate_node_name
+        origin_gate_name = gate_term.get_name()
+        gate_term.set_node(self.get_node(gate_name))
 
-    def unshort_transistor(self, name, gate_name):
-        for transistor in self.get_transistors():
-            if transistor.get_name() == name:
-                gate_term = transistor.get_terminal(Transistor.terminal_type['gate'])
-                gate_term.set_node(self.get_node(gate_name))
-                break
-        else:
-            raise ValueError(f'{name} not found')
+        return origin_gate_name
+
+    def turn_on_transistor(self, name):
+        transistor = self.get_transistor(name)
+
+        always_on_node_name = 'VDD'
+        if transistor.get_type() == 'PMOS':
+            always_on_node_name = 'GND'
+
+        return self.replace_transistor_gate(name, always_on_node_name)
 
     def update_transistor_names(self):
         tx_cnt = 1
