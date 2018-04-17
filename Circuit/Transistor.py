@@ -66,6 +66,11 @@ class Transistor:
         ret = f"{self.name_} {ret}{self.buck_}\n"
         return ret
 
+    def is_gate_same_as_one_diff(self):
+        if self.terminals[0].get_name() == self.terminals[1].get_name():
+            return True
+        return self.terminals[0].get_name() == self.terminals[2].get_name()
+
     def __str__(self):
         return self.get_description()
 

@@ -160,6 +160,17 @@ class NetlistTestCase(unittest.TestCase):
         self.assertEqual(len(netlist.node_dicts_[netlist.get_set_name_for_node('N0001')]), 1)
         self.assertEqual(str_netlist, netlist.get_netlist_string())
 
+    def test_transistor_gate_diff_same(self):
+        netlist = Netlist()
+        str_netlist = "M0001 VDD VDD N0002 GND NMOS\n" \
+                      "M0002 N0001 IN002 IN002 VDD PMOS\n" \
+                      "M0003 OUT01 N0001 IN002 VDD PMOS\n"
+        netlist.set_netlist(str_netlist)
+
+        self.assertTrue(netlist.get_transistor('M0001').is_gate_same_as_one_diff())
+        self.assertTrue(netlist.get_transistor('M0002').is_gate_same_as_one_diff())
+        self.assertFalse(netlist.get_transistor('M0003').is_gate_same_as_one_diff())
+
 
 if __name__ == '__main__':
     unittest.main()
