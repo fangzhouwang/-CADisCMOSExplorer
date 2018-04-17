@@ -58,6 +58,11 @@ class Cell:
             self.cal_bsf()
         return self.bsf_
 
+    def get_bsf_unified(self):
+        if not self.bsf_unified_:
+            self.cal_bsf()
+        return self.bsf_unified_
+
     def get_bsf_weak(self):
         if not self.bsf_weak_:
             self.cal_bsf()
@@ -74,7 +79,7 @@ class Cell:
         query += ')'
 
         id_list = list()
-        for row in self.upstream_db_.run_query(query, [self.bsf_unified_]):
+        for row in self.upstream_db_.run_query(query, [self.get_bsf_unified()]):
             id_list.append(int(row['ID']))
 
         return id_list
