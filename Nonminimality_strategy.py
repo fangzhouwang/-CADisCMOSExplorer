@@ -18,6 +18,6 @@ class NonminimalityStrategy:
             self.netlist.add_transistor(transistor.get_description())
 
             # generate netlists for short cases
-            origin_gate_name = self.netlist.short_transistor(f'M{i:04}')
+            origin_gate_name = self.netlist.turn_on_transistor(f'M{i:04}')
             yield self.netlist.get_netlist_string()
-            self.netlist.unshort_transistor(f'M{i:04}', origin_gate_name)
+            self.netlist.replace_transistor_gate(f'M{i:04}', origin_gate_name)
