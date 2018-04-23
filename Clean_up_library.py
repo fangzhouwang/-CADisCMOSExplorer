@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
-from Eliminate_structural_iso import *
-from Eliminate_nonminimal import *
 from joblib import Parallel, delayed
 import multiprocessing
 import sys
+
+from Eliminate_structural_iso import *
+from Eliminate_nonminimal import *
+from Compare_libraries import *
 
 
 # Utility functions
@@ -127,6 +129,8 @@ def remove_redundant_input(table, db_config):
 
 
 def process_remove_isomorphic(db_config, table, limit):
+    if limit[1] == 0:
+        return
     elm = ISOEliminator(db_config, table)
     elm.eliminate_iso(limit[0], limit[1])
 
@@ -138,6 +142,8 @@ def remove_isomorphic(table, db_config, num_cores):
 
 
 def process_remove_nonminimal(db_config, table, limit):
+    if limit[1] == 0:
+        return
     elm = NonminimalEliminator(db_config, table)
     elm.eliminate_nonminimal_cells(limit[0], limit[1])
 
@@ -149,6 +155,8 @@ def remove_nonminimal(table, db_config, num_cores):
 
 
 def process_update_bsf_uni(bsf_col, db_config, table, limit):
+    if limit[1] == 0:
+        return
     update_bsf_uni_for_table(bsf_col, table, db_config, limit[0], limit[1])
 
 
@@ -195,6 +203,10 @@ def clean_up(table, db_config, source='RAW_DATA_LIB'):
     print('--- removing nonminimal cells ---')
     remove_nonminimal(table, db_config, get_num_cores())
 
+    # check inclusive
+    comp = CompareLibraries(db_config, table)
+    comp.is_subset_of('WORK_LIB')
+
 
 if __name__ == '__main__':
     if sys.platform == 'linux':
@@ -206,4 +218,4 @@ if __name__ == '__main__':
         print(f'Error: DB_Config is not setup for {sys.platform} yet.')
         exit(1)
 
-    clean_up('ONE_FIVE_LIB', local_db_config)
+    clean_up('NON_MINI_TEST', local_db_config, source='ONE_FIVE_LIB')
