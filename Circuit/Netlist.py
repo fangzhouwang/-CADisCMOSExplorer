@@ -81,6 +81,57 @@ class Netlist:
         else:
             return 'supply'
 
+    @staticmethod
+    def get_node_name_prefix_cnt_for_dict(dict_name):
+        if dict_name == 'in':
+            start = 2
+        elif dict_name == 'internal':
+            start = 1
+        else:
+            raise ValueError(f'{dict_name} not supported')
+        return start
+
+    def get_max_cnt_for_dict(self, dict_name):
+        if len(self.node_dicts_[dict_name]) == 0:
+            return 0
+        start = self.get_node_name_prefix_cnt_for_dict(dict_name)
+        return max(int(k[start:]) for k in self.node_dicts_[dict_name].keys())
+
+    def shift_node_cnt_for_dict(self, dict_name, delta):
+        if len(self.node_dicts_[dict_name]) == 0:
+            return
+
+        start = self.get_node_name_prefix_cnt_for_dict(dict_name)
+        length = 5 - start
+        node_names = [x for x in self.node_dicts_[dict_name].keys()]
+        node_name_format = node_names[0][0:start] + '{:0' + str(length) + '}'
+        for node_name in node_names:
+            new_node_name = node_name_format.format(int(node_name[start:])+delta)
+            self.node_dicts_[dict_name][new_node_name] = self.node_dicts_[dict_name].pop(node_name)
+            self.node_dicts_[dict_name][new_node_name].set_name(new_node_name)
+
+    def get_nodes_for_dict(self, dict_name):
+        return [x for x in self.node_dicts_[dict_name].values()]
+
+    def get_node_names_for_dict(self, dict_name):
+        return [x.get_name() for x in self.get_nodes_for_dict(dict_name)]
+
+    def get_node_cnt_for_dict(self, dict_name):
+        return len(self.node_dicts_[dict_name])
+
+    def rename_node(self, new_name, old_name, merge=False):
+        new_dict_name = self.get_set_name_for_node(new_name)
+        old_dict_name = self.get_set_name_for_node(old_name)
+        if not merge and new_name in self.node_dicts_[new_dict_name]:
+            raise ValueError(f'{new_name} already exists in {new_dict_name}')
+
+        self.node_dicts_[new_dict_name][new_name] = self.node_dicts_[old_dict_name].pop(old_name)
+        self.node_dicts_[new_dict_name][new_name].set_name(new_name)
+
+    def rename_node_only(self, new_name, old_name):
+        old_dict_name = self.get_set_name_for_node(old_name)
+        self.node_dicts_[old_dict_name][old_name].set_name(new_name)
+
     def get_netlist_string(self):
         return str(self)
 

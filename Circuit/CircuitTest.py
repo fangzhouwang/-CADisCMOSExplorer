@@ -171,6 +171,27 @@ class NetlistTestCase(unittest.TestCase):
         self.assertTrue(netlist.get_transistor('M0002').is_gate_same_as_one_diff())
         self.assertFalse(netlist.get_transistor('M0003').is_gate_same_as_one_diff())
 
+    def test_get_max_cnt(self):
+        netlist = Netlist()
+        str_netlist = "M0001 VDD VDD N0002 GND NMOS\n" \
+                      "M0002 N0001 IN002 IN002 VDD PMOS\n" \
+                      "M0003 OUT01 N0001 IN002 VDD PMOS\n"
+        netlist.set_netlist(str_netlist)
+        self.assertEqual(2, netlist.get_max_cnt_for_dict('internal'))
+        self.assertEqual(2, netlist.get_max_cnt_for_dict('in'))
+
+    def test_shift_node_cnt(self):
+        netlist = Netlist()
+        str_netlist = "M0001 VDD VDD N0002 GND NMOS\n" \
+                      "M0002 N0001 IN002 IN002 VDD PMOS\n" \
+                      "M0003 OUT01 N0001 IN002 VDD PMOS\n"
+        netlist.set_netlist(str_netlist)
+        netlist.shift_node_cnt_for_dict('internal', 3)
+        str_netlist = "M0001 VDD VDD N0005 GND NMOS\n" \
+                      "M0002 N0004 IN002 IN002 VDD PMOS\n" \
+                      "M0003 OUT01 N0004 IN002 VDD PMOS\n"
+        self.assertEqual(str_netlist, netlist.get_netlist_string())
+        self.assertCountEqual(['N0004', 'N0005'], netlist.node_dicts_['internal'].keys())
 
 if __name__ == '__main__':
     unittest.main()
