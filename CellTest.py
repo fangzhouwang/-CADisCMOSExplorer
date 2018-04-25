@@ -25,6 +25,36 @@ class MyTestCase(unittest.TestCase):
         test_cell.cal_bsf()
         self.assertEqual(1, test_cell.get_id())
 
+    def test_get_family(self):
+        cell = Cell(self.db_)
+        cell.init_based_on_id(2)
+        self.assertEqual('ULM', cell.get_family())
+
+    def test_get_family_none(self):
+        cell = Cell(self.db_)
+        str_netlist = "M0001 IN005 VDD IN001 GND NMOS\n"
+        cell.init_based_on_netlist(str_netlist)
+        self.assertIsNone(cell.get_family())
+
+    def test_clear_family(self):
+        cell = Cell(self.db_)
+        cell.init_based_on_id(1)
+        cell.clear_family()
+        self.assertIsNone(cell.get_family())
+
+    def test_add_family(self):
+        cell = Cell(self.db_)
+        cell.init_based_on_id(1)
+
+        cell.clear_family()
+        cell.add_to_family('SingleTx')
+        self.assertEqual('SingleTx', cell.get_family())
+
+        # check adding same content twice, this should not affect the value
+        cell.add_to_family('SingleTx')
+        self.assertEqual('SingleTx', cell.get_family())
+        cell.clear_family()
+
 
 if __name__ == '__main__':
     unittest.main()

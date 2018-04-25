@@ -3,6 +3,7 @@
 from Circuit.Netlist import *
 from Circuit.CSim import *
 from bsf import *
+from ArkLibPy import ArkDBMySQL
 
 
 class Cell:
@@ -92,3 +93,29 @@ class Cell:
             else:
                 self.cell_id_ = 0
         return self.cell_id_
+
+    def get_family(self):
+        id_cell = self.get_id()
+        cell_family = self.upstream_db_.get_query_value('CELL_FAMILY',
+                                                        f'SELECT CELL_FAMILY FROM {self.upstream_db_.get_table()} '
+                                                        'WHERE idCELL=%s', [id_cell])
+        return cell_family
+
+    def clear_family(self):
+        id_cell = self.get_id()
+        self.upstream_db_.run_sql(f'UPDATE {self.upstream_db_.get_table()} SET CELL_FAMILY=NULL WHERE '
+                                  f'idCELL={id_cell}')
+
+    def add_to_family(self, family_name):
+        id_cell = self.get_id()
+        if id_cell == 0:
+            return
+        cell_family = self.get_family()
+        if not cell_family:
+            cell_family = family_name
+        elif family_name not in cell_family:
+            cell_family += ',' + family_name
+        else:
+            # cell already belongs to this family
+            return
+        self.upstream_db_.update(id_cell, 'idCELL', {'CELL_FAMILY': cell_family})
