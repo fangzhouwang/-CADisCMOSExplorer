@@ -150,6 +150,45 @@ def update_bsf_uni(bsf_col, db_config, table, num_cores):
                                for i in prepare(db_config, f'SELECT count(*) AS CNT FROM BSF_LIB', num_cores))
 
 
+def tag_multi_cell(db_config, table):
+    db = ArkDBMySQL(db_config_file=db_config)
+    db.set_table(table)
+
+    # select all 1~3 tx cells
+    netlists = [
+        row['CELL_NETLIST'] for row in
+        db.run_query_get_all_row(f'SELECT CELL_NETLIST FROM {db.get_table()} WHERE CELL_PMOS_CNT+CELL_NMOS_CNT<=2')
+    ]
+
+    # for every two of them, construct multi-cells
+    for two_netlists in tqdm(list(product(netlists, repeat=2)), desc='Multi-cell'):
+        multi_cell = MultiCell()
+        iso_multi, shared_multi = multi_cell.construct(two_netlists[0], two_netlists[1])
+
+        # search for those multi-cells in lib and tag them
+        cell = Cell(db)
+        for str_netlist in iso_multi:
+            cell.init_based_on_netlist(str_netlist)
+            cell.add_to_family('MultiCellIsoInput')
+        for str_netlist in shared_multi:
+            cell.init_based_on_netlist(str_netlist)
+            cell.add_to_family('MultiCellSharedInput')
+
+
+def remove_non_shared_multi_cells(db_config, table):
+    db = ArkDBMySQL(db_config_file=db_config)
+    db.set_table(table)
+    id_list = [
+        row['idCELL'] for row in
+        db.run_query_get_all_row(f"SELECT idCELL FROM {db.get_table()} WHERE CELL_FAMILY like '%MultiCellIsoInput%'")
+    ]
+    for id_cell in id_list:
+        db.delete(id_cell, 'idCELL')
+    if len(id_list) != 0:
+        db.commit()
+    print(get_cell_cnt(db_config, table))
+
+
 def clean_up(db_config, table, source='RAW_DATA_LIB'):
     print(f'--- duplicating {source} as {table} ---')
     duplicate_table(db_config, table, source)
@@ -187,6 +226,12 @@ def clean_up(db_config, table, source='RAW_DATA_LIB'):
     print('--- removing nonminimal cells ---')
     remove_nonminimal(db_config, table, get_num_cores())
 
+    print('--- tagging multi cells ---')
+    tag_multi_cell(db_config, table)
+
+    print('--- removing non-shared multi cells ---')
+    remove_non_shared_multi_cells(db_config, table)
+
     # print('---  ---')
 
     # check inclusive
@@ -204,4 +249,4 @@ if __name__ == '__main__':
         print(f'Error: DB_Config is not setup for {sys.platform} yet.')
         exit(1)
 
-    clean_up(local_db_config, 'NON_MINI_TEST', source='ONE_FIVE_LIB')
+    clean_up(local_db_config, 'NON_MINI_TEST')
