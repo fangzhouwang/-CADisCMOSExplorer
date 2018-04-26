@@ -120,6 +120,8 @@ class Netlist:
         return len(self.node_dicts_[dict_name])
 
     def rename_node(self, new_name, old_name, merge=False):
+        if new_name == old_name:
+            return
         new_dict_name = self.get_set_name_for_node(new_name)
         old_dict_name = self.get_set_name_for_node(old_name)
         if not merge and new_name in self.node_dicts_[new_dict_name]:
