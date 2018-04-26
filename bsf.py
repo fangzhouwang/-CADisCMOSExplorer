@@ -119,7 +119,7 @@ def create_bsf_table(input_cnt, db_config_file):
     db.commit()
 
 
-def update_bsf_uni_for_table(bsf_col, target_lib, db_config_file, start, cnt, force=False):
+def update_bsf_uni_for_table(bsf_col, db_config_file, target_lib, start, cnt, force=False):
     db = ArkDBMySQL(db_config_file=db_config_file)
 
     if not force:

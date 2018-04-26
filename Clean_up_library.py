@@ -7,6 +7,8 @@ import sys
 from Eliminate_structural_iso import *
 from Eliminate_nonminimal import *
 from Compare_libraries import *
+from Multi_cell import *
+from ArkLibPy.ArkDBMySQL import ArkDBMySQL
 
 
 # Utility functions
@@ -48,21 +50,21 @@ def prepare(db_config, query, n_jobs):
 
 
 # --- Database related helper functions
-def create_indexes(table, db_config, index_list):
+def create_indexes(db_config, table, index_list):
     db = ArkDBMySQL(db_config_file=db_config)
     db.set_table(table)
     for index in index_list:
         db.add_index(index)
 
 
-def remove_indexes(table, db_config, index_list):
+def remove_indexes(db_config, table, index_list):
     db = ArkDBMySQL(db_config_file=db_config)
     db.set_table(table)
     for index in index_list:
         db.remove_index(index)
 
 
-def get_cell_cnt(table, db_config):
+def get_cell_cnt(db_config, table):
     db = ArkDBMySQL(db_config_file=db_config)
     query = f'SELECT COUNT(*) AS CNT FROM {table} WHERE CELL_PMOS_CNT+CELL_NMOS_CNT=%s'
     ret = dict()
@@ -73,7 +75,7 @@ def get_cell_cnt(table, db_config):
 
 # Cleaning procedures
 
-def duplicate_table(new_table, source_table, db_config, copy_indexes_n_triggers=True):
+def duplicate_table(db_config, new_table, source_table, copy_indexes_n_triggers=True):
     db = ArkDBMySQL(db_config_file=db_config)
     if db.is_table_exist(new_table):
         print(f'table {new_table} already exists')
@@ -94,38 +96,21 @@ def duplicate_table(new_table, source_table, db_config, copy_indexes_n_triggers=
             exit(1)
 
 
-"""
-def show_constant(table, db_config):
-    db = ArkDBMySQL(db_config_file=db_config)
-    query = f"SELECT * FROM {table} WHERE CELL_BSF_UNIFIED=%s AND CELL_PMOS_CNT+CELL_NMOS_CNT <=2"
-    print('--- 0 ---')
-    res = db.run_query_get_all_row(query, ['0'])
-    for row in res:
-        print(f"{row['idCELL']} {row['CELL_BSF']} {row['CELL_BSF_UNIFIED']}")
-    print('--- 1 ---')
-    res = db.run_query_get_all_row(query, ['1'])
-    for row in res:
-        print(f"{row['idCELL']} {row['CELL_BSF']} {row['CELL_BSF_UNIFIED']}")
-
-    print(get_cell_cnt(table, db_config))
-"""
-
-
-def remove_constant(table, db_config):
+def remove_constant(db_config, table):
     db = ArkDBMySQL(db_config_file=db_config)
     query = f'DELETE FROM {table} WHERE CELL_BSF_UNIFIED=%s'
     db.run_sql(query, ['0'])
     db.run_sql(query, ['1'])
 
-    print(get_cell_cnt(table, db_config))
+    print(get_cell_cnt(db_config, table))
 
 
-def remove_redundant_input(table, db_config):
+def remove_redundant_input(db_config, table):
     db = ArkDBMySQL(db_config_file=db_config)
     query = f'DELETE FROM {table} WHERE length(CELL_BSF) > length(CELL_BSF_UNIFIED)'
     db.run_sql(query)
 
-    print(get_cell_cnt(table, db_config))
+    print(get_cell_cnt(db_config, table))
 
 
 def process_remove_isomorphic(db_config, table, limit):
@@ -135,10 +120,10 @@ def process_remove_isomorphic(db_config, table, limit):
     elm.eliminate_iso(limit[0], limit[1])
 
 
-def remove_isomorphic(table, db_config, num_cores):
+def remove_isomorphic(db_config, table, num_cores):
     Parallel(n_jobs=num_cores)(delayed(process_remove_isomorphic)(db_config, table, i)
          for i in prepare(db_config, f'SELECT COUNT(DISTINCT CELL_BSF_UNIFIED) AS CNT FROM {table}', num_cores))
-    print(get_cell_cnt(table, db_config))
+    print(get_cell_cnt(db_config, table))
 
 
 def process_remove_nonminimal(db_config, table, limit):
@@ -148,30 +133,29 @@ def process_remove_nonminimal(db_config, table, limit):
     elm.eliminate_nonminimal_cells(limit[0], limit[1])
 
 
-def remove_nonminimal(table, db_config, num_cores):
+def remove_nonminimal(db_config, table, num_cores):
     Parallel(n_jobs=num_cores)(delayed(process_remove_nonminimal)(db_config, table, i)
-         for i in prepare(db_config, f'SELECT count(*) AS CNT FROM {table}', num_cores))
-    print(get_cell_cnt(table, db_config))
+                               for i in prepare(db_config, f'SELECT count(*) AS CNT FROM {table}', num_cores))
+    print(get_cell_cnt(db_config, table))
 
 
 def process_update_bsf_uni(bsf_col, db_config, table, limit):
     if limit[1] == 0:
         return
-    update_bsf_uni_for_table(bsf_col, table, db_config, limit[0], limit[1])
+    update_bsf_uni_for_table(bsf_col, db_config, table, limit[0], limit[1])
 
 
-def update_bsf_uni(bsf_col, table, db_config, num_cores):
+def update_bsf_uni(bsf_col, db_config, table, num_cores):
     Parallel(n_jobs=num_cores)(delayed(process_update_bsf_uni)(bsf_col, db_config, table, i)
                                for i in prepare(db_config, f'SELECT count(*) AS CNT FROM BSF_LIB', num_cores))
 
 
-def clean_up(table, db_config, source='RAW_DATA_LIB'):
-    # print('---  ---')
+def clean_up(db_config, table, source='RAW_DATA_LIB'):
     print(f'--- duplicating {source} as {table} ---')
-    duplicate_table(table, source, db_config)
+    duplicate_table(db_config, table, source)
 
     print('--- creating indexes ---')
-    create_indexes(table, db_config, [
+    create_indexes(db_config, table, [
         'CELL_PMOS_CNT',
         'CELL_NMOS_CNT',
         'CELL_NETLIST',
@@ -180,28 +164,30 @@ def clean_up(table, db_config, source='RAW_DATA_LIB'):
     ])
 
     print('--- number of cells before cleaning up ---')
-    print(get_cell_cnt(table, db_config))
+    print(get_cell_cnt(db_config, table))
 
     print('--- updating bsf_unified ---')
-    update_bsf_uni('CELL_BSF', table, db_config, get_num_cores())
+    update_bsf_uni('CELL_BSF', db_config, table, get_num_cores())
 
     print('--- removing constant cells ---')
-    remove_constant(table, db_config)
+    remove_constant(db_config, table)
     print('--- removing cells with redundant inputs ---')
-    remove_redundant_input(table, db_config)
+    remove_redundant_input(db_config, table)
 
     print('--- updating bsf_weak_unified ---')
-    update_bsf_uni('CELL_BSF_weak', table, db_config, get_num_cores())
-    create_indexes(table, db_config, [
+    update_bsf_uni('CELL_BSF_weak', db_config, table, get_num_cores())
+    create_indexes(db_config, table, [
         'CELL_BSF_UNIFIED',
         'CELL_BSF_weak_UNIFIED'
     ])
 
     print('--- removing isomorphic cells ---')
-    remove_isomorphic(table, db_config, get_num_cores())
+    remove_isomorphic(db_config, table, get_num_cores())
 
     print('--- removing nonminimal cells ---')
-    remove_nonminimal(table, db_config, get_num_cores())
+    remove_nonminimal(db_config, table, get_num_cores())
+
+    # print('---  ---')
 
     # check inclusive
     comp = CompareLibraries(db_config, table)
@@ -218,4 +204,4 @@ if __name__ == '__main__':
         print(f'Error: DB_Config is not setup for {sys.platform} yet.')
         exit(1)
 
-    clean_up('NON_MINI_TEST', local_db_config, source='ONE_FIVE_LIB')
+    clean_up(local_db_config, 'NON_MINI_TEST', source='ONE_FIVE_LIB')
