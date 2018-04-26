@@ -3,7 +3,7 @@
 from Circuit.Netlist import *
 from Circuit.CSim import *
 from bsf import *
-from ArkLibPy import ArkDBMySQL
+from ArkLibPy.ArkDBMySQL import ArkDBMySQL
 
 
 class Cell:
