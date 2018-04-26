@@ -193,5 +193,6 @@ class NetlistTestCase(unittest.TestCase):
         self.assertEqual(str_netlist, netlist.get_netlist_string())
         self.assertCountEqual(['N0004', 'N0005'], netlist.node_dicts_['internal'].keys())
 
+
 if __name__ == '__main__':
     unittest.main()

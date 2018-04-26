@@ -84,6 +84,24 @@ class MultiCellTestCase(unittest.TestCase):
             shared_golden.append(template_3.replace('IN003', replacements[0]).replace('IN004', replacements[1]))
         self.assertCountEqual(shared_golden, share)
 
+    def test_multi_cell_with_1_2(self):
+        str_netlist_1 = "M0001 OUT01 VDD IN001 GND NMOS\n"
+        str_netlist_2 = "M0001 VDD IN001 OUT01 GND NMOS\n"\
+                        "M0002 OUT01 IN001 IN002 VDD PMOS\n"
+
+        multi_cell = MultiCell()
+        iso, share = multi_cell.construct(str_netlist_1, str_netlist_2)
+        self.assertCountEqual([
+            "M0001 N0001 VDD IN001 GND NMOS\nM0002 VDD N0001 OUT01 GND NMOS\nM0003 OUT01 N0001 IN001 VDD PMOS\n",
+            "M0001 N0001 VDD IN001 GND NMOS\nM0002 VDD IN001 OUT01 GND NMOS\nM0003 OUT01 IN001 N0001 VDD PMOS\n"
+        ], share)
+        self.assertCountEqual([
+            "M0001 N0001 VDD IN001 GND NMOS\nM0002 VDD N0001 OUT01 GND NMOS\nM0003 OUT01 N0001 IN002 VDD PMOS\n",
+            "M0001 N0001 VDD IN001 GND NMOS\nM0002 VDD N0001 OUT01 GND NMOS\nM0003 OUT01 N0001 IN003 VDD PMOS\n",
+            "M0001 N0001 VDD IN001 GND NMOS\nM0002 VDD IN002 OUT01 GND NMOS\nM0003 OUT01 IN002 N0001 VDD PMOS\n",
+            "M0001 N0001 VDD IN001 GND NMOS\nM0002 VDD IN003 OUT01 GND NMOS\nM0003 OUT01 IN003 N0001 VDD PMOS\n"
+        ], iso)
+
 
 if __name__ == '__main__':
     unittest.main()
