@@ -10,15 +10,6 @@ class MultiCell:
         self.netlist_2_ = Netlist()
         self.multi_cell_netlist_ = Netlist()
 
-    @staticmethod
-    def get_name_for_cnt(name_group, cnt):
-        if name_group == 'in':
-            return f'IN{cnt:03}'
-        elif name_group == 'internal':
-            return f'N{cnt:04}'
-        else:
-            raise ValueError(f'Unexpected group {name_group}')
-
     def gen_connect_renaming_dicts(self, target_pi_name, pi_max_cnt_1, internal_max_cnt_2):
         # change it to internal node y+1
         #   for second_cell's all other PIs (e.g., input b), if b<a, then b becomes b+z, otherwise b is b+z-1
@@ -26,11 +17,11 @@ class MultiCell:
         restore_dict = dict()
         for pi_name in self.netlist_2_.get_node_names_for_dict('in'):
             if pi_name == target_pi_name:
-                rename_dict[pi_name] = self.get_name_for_cnt('internal', internal_max_cnt_2 + 1)
+                rename_dict[pi_name] = Netlist.get_name_for_cnt('internal', internal_max_cnt_2 + 1)
             elif int(pi_name[2:]) < int(target_pi_name[2:]):
-                rename_dict[pi_name] = self.get_name_for_cnt('in', int(pi_name[2:]) + pi_max_cnt_1)
+                rename_dict[pi_name] = Netlist.get_name_for_cnt('in', int(pi_name[2:]) + pi_max_cnt_1)
             else:
-                rename_dict[pi_name] = self.get_name_for_cnt('in', int(pi_name[2:]) + pi_max_cnt_1 - 1)
+                rename_dict[pi_name] = Netlist.get_name_for_cnt('in', int(pi_name[2:]) + pi_max_cnt_1 - 1)
             restore_dict[rename_dict[pi_name]] = pi_name
         return rename_dict, restore_dict
 
@@ -68,7 +59,7 @@ class MultiCell:
             internal_node_max_cnt_2 = internal_node_max_cnt_1
 
         # replace first cell's output node to internal node y+1
-        self.netlist_1_.rename_node(self.get_name_for_cnt('internal', internal_node_max_cnt_2+1), 'OUT01')
+        self.netlist_1_.rename_node(Netlist.get_name_for_cnt('internal', internal_node_max_cnt_2+1), 'OUT01')
 
         # update pi names of the second cell to connect two cells together
         # REPEAT for ALL pi in second cell:
@@ -84,7 +75,7 @@ class MultiCell:
                 modified_netlist_2.rename_node(new_name, origin_name)
 
             # assign inputs for the new multi-cell
-            pi_assignments_1 = [self.get_name_for_cnt('in', x)
+            pi_assignments_1 = [Netlist.get_name_for_cnt('in', x)
                                 for x in range(1, self.netlist_1_.get_max_cnt_for_dict('in')+1)]
             for pi_assignments_2 in product(('IN001', 'IN002', 'IN003'),
                                             repeat=modified_netlist_2.get_node_cnt_for_dict('in')):

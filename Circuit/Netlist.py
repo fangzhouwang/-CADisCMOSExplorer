@@ -91,6 +91,15 @@ class Netlist:
             raise ValueError(f'{dict_name} not supported')
         return start
 
+    @staticmethod
+    def get_name_for_cnt(name_group, cnt):
+        if name_group == 'in':
+            return f'IN{cnt:03}'
+        elif name_group == 'internal':
+            return f'N{cnt:04}'
+        else:
+            raise ValueError(f'Unexpected group {name_group}')
+
     def get_max_cnt_for_dict(self, dict_name):
         if len(self.node_dicts_[dict_name]) == 0:
             return 0
@@ -226,6 +235,20 @@ class Netlist:
             yield transistor
         for transistor in self.p_transistors_:
             yield transistor
+
+    def get_transistors_with_node_to_term(self, node_name, term_type):
+        for transistor in self.get_transistors():
+            if transistor.get_terminal_with_type(term_type).get_name() == node_name:
+                yield transistor
+
+    def flip_transistor_type(self, transistor):
+        if transistor.get_type() == 'PMOS':
+            self.p_transistors_.remove(transistor)
+            self.n_transistors_.append(transistor)
+        else:
+            self.n_transistors_.remove(transistor)
+            self.p_transistors_.append(transistor)
+        transistor.flip_type()
 
     def get_transistors_cnt(self):
         return self.transistor_cnt
