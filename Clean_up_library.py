@@ -9,6 +9,7 @@ from Eliminate_nonminimal import *
 from Compare_libraries import *
 from Multi_cell import *
 from ArkLibPy.ArkDBMySQL import ArkDBMySQL
+from ULM_cell import *
 
 
 # Utility functions
@@ -153,6 +154,7 @@ def update_bsf_uni(bsf_col, db_config, table, num_cores):
 def tag_multi_cell(db_config, table):
     db = ArkDBMySQL(db_config_file=db_config)
     db.set_table(table)
+    cell = Cell(db)
 
     # select all 1~3 tx cells
     netlists = [
@@ -166,13 +168,29 @@ def tag_multi_cell(db_config, table):
         iso_multi, shared_multi = multi_cell.construct(two_netlists[0], two_netlists[1])
 
         # search for those multi-cells in lib and tag them
-        cell = Cell(db)
         for str_netlist in iso_multi:
             cell.init_based_on_netlist(str_netlist)
             cell.add_to_family('MultiCellIsoInput')
         for str_netlist in shared_multi:
             cell.init_based_on_netlist(str_netlist)
             cell.add_to_family('MultiCellSharedInput')
+
+
+def tag_ulm_cell(db_config, table):
+    db = ArkDBMySQL(db_config_file=db_config)
+    db.set_table(table)
+
+    ulm_cell = ULMCell()
+    cell = Cell(db)
+
+    for netlist in tqdm(list(ulm_cell.construct_ulm_cells()), desc='ULM-cell'):
+        # search for those ulm-cells in lib and tag them
+        cell.init_based_on_netlist(netlist)
+        cell.add_to_family('ULM')
+
+    for netlist in tqdm(list(ulm_cell.construct_ulm_inv_polarity_cells()), desc='ULM_inv_pol-cell'):
+        cell.init_based_on_netlist(netlist)
+        cell.add_to_family('ULM_INV_POL')
 
 
 def remove_non_shared_multi_cells(db_config, table):
@@ -231,6 +249,9 @@ def clean_up(db_config, table, source='RAW_DATA_LIB'):
 
     print('--- removing non-shared multi cells ---')
     remove_non_shared_multi_cells(db_config, table)
+
+    print('--- tagging ULM cells ---')
+    tag_ulm_cell(db_config, table)
 
     # print('---  ---')
 
