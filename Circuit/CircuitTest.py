@@ -1,4 +1,6 @@
 import unittest
+import os
+
 from Circuit.Netlist import *
 from Circuit.CSim import *
 
@@ -37,7 +39,9 @@ class NetlistTestCase(unittest.TestCase):
         str_netlist = "M0001 N0002 IN001 N0001 GND NMOS\n"
         netlist.set_netlist(str_netlist)
         equ_netlists = []
-        with open('complete_test_results_1.txt') as results:
+
+        script_dir = os.path.dirname(os.path.realpath(__file__)) + '/'
+        with open(script_dir + 'complete_test_results_1.txt') as results:
             temp_netlist = ''
             for line in results:
                 if line == "\n":
@@ -54,7 +58,9 @@ class NetlistTestCase(unittest.TestCase):
                       "M0002 OUT01 N0001 IN002 VDD PMOS\n"
         netlist.set_netlist(str_netlist)
         equ_netlists = []
-        with open('complete_test_results_2.txt') as results:
+
+        script_dir = os.path.dirname(os.path.realpath(__file__)) + '/'
+        with open(script_dir + 'complete_test_results_2.txt') as results:
             temp_netlist = ''
             for line in results:
                 if line == "\n":
@@ -73,7 +79,9 @@ class NetlistTestCase(unittest.TestCase):
                       "M0004 OUT01 N0001 IN002 VDD PMOS\n"
         netlist.set_netlist(str_netlist)
         equ_netlists = []
-        with open('complete_test_results_3.txt') as results:
+
+        script_dir = os.path.dirname(os.path.realpath(__file__)) + '/'
+        with open(script_dir + 'complete_test_results_3.txt') as results:
             temp_netlist = ''
             for line in results:
                 if line == "\n":
