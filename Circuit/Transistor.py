@@ -33,17 +33,16 @@ class Transistor:
     def __init__(self, name, t_type):
         self.name_ = name
         self.t_type_ = t_type
-        if t_type == 'PMOS':
-            self.buck_ = 'VDD PMOS'
-        else:
-            self.buck_ = 'GND NMOS'
         self.terminals = list()
         self.terminals.append(Terminal(self, 'gate'))
         self.terminals.append(Terminal(self, 'drain'))
         self.terminals.append(Terminal(self, 'source'))
 
-    def get_terminal(self, t_type):
-        return self.terminals[t_type]
+    def get_terminal(self, t_idx):
+        return self.terminals[t_idx]
+
+    def get_terminal_with_type(self, t_type):
+        return self.terminals[Transistor.terminal_type[t_type]]
 
     def set_name(self, name):
         self.name_ = name
@@ -54,6 +53,18 @@ class Transistor:
     def get_type(self):
         return self.t_type_
 
+    def flip_type(self):
+        if self.t_type_ == 'PMOS':
+            self.t_type_ = 'NMOS'
+        else:
+            self.t_type_ = 'PMOS'
+
+    def get_bulk(self):
+        if self.t_type_ == 'PMOS':
+            return 'VDD PMOS'
+        else:
+            return 'GND NMOS'
+
     def get_description(self, reverse_diffusions=False):
         ret = ''
         if reverse_diffusions:
@@ -63,7 +74,7 @@ class Transistor:
         for i in terminal_idx:
             ret += str(self.terminals[i]) + ' '
 
-        ret = f"{self.name_} {ret}{self.buck_}\n"
+        ret = f"{self.name_} {ret}{self.get_bulk()}\n"
         return ret
 
     def is_gate_same_as_one_diff(self):
