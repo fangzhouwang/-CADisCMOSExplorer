@@ -26,6 +26,12 @@ class Terminal:
     def get_name(self):
         return self.node_.get_name()
 
+    def get_type_short(self):
+        return self.t_type_[0]
+
+    def get_owner_name(self):
+        return self.owner_.get_name()
+
 
 class Transistor:
     terminal_type = dict(gate=0, drain=1, source=2)
@@ -42,6 +48,18 @@ class Transistor:
         return self.terminals[t_idx]
 
     def get_terminal_with_type(self, t_type):
+        return self.terminals[Transistor.terminal_type[t_type]]
+
+    def get_terminal_with_short_type(self, s_type):
+        if s_type == 'g':
+            t_type = 'gate'
+        elif s_type == 's':
+            t_type = 'source'
+        elif s_type == 'd':
+            t_type = 'drain'
+        else:
+            raise ValueError(f'Type {s_type} is invalid')
+
         return self.terminals[Transistor.terminal_type[t_type]]
 
     def set_name(self, name):
