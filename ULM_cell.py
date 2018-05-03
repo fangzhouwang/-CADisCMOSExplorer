@@ -30,6 +30,21 @@ class ULMCell:
         "M0004 OUT01 IN002 N0001 VDD PMOS\n"
     ]
 
+    # VDD/GND of different transistors can be changed to different PIs
+    extended_templates = [
+        # NAND structure
+        "M0001 OUT01 IN001 N0001 GND NMOS\n"
+        "M0002 IN101 IN002 N0001 GND NMOS\n"
+        "M0003 IN102 IN001 OUT01 VDD PMOS\n"
+        "M0004 IN103 IN002 OUT01 VDD PMOS\n",
+
+        # NOR structure
+        "M0001 IN101 IN001 OUT01 GND NMOS\n"
+        "M0002 IN102 IN002 OUT01 GND NMOS\n"
+        "M0003 IN103 IN001 N0001 VDD PMOS\n"
+        "M0004 OUT01 IN002 N0001 VDD PMOS\n"
+    ]
+
     def __init__(self):
         self.netlist = Netlist()
 
@@ -51,6 +66,16 @@ class ULMCell:
 
     def construct_ulm_inv_polarity_cells(self):
         for str_netlist in self.construct_ulm_cells():
+            for inv_polarity_str_netlist in self.construct_ulm_inv_polarity_cells_from_strnetlist(str_netlist):
+                yield inv_polarity_str_netlist
+
+    def construct_extended_ulm_cells(self):
+        for template in self.extended_templates:
+            for str_netlist in self.construct_cells_from_ulm_template(template):
+                yield str_netlist
+
+    def construct_extended_ulm_inv_polarity_cells(self):
+        for str_netlist in self.construct_extended_ulm_cells():
             for inv_polarity_str_netlist in self.construct_ulm_inv_polarity_cells_from_strnetlist(str_netlist):
                 yield inv_polarity_str_netlist
 

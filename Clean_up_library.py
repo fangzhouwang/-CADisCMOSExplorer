@@ -193,6 +193,23 @@ def tag_ulm_cell(db_config, table):
         cell.add_to_family('ULM_INV_POL')
 
 
+def tag_extended_ulm_cell(db_config, table):
+    db = ArkDBMySQL(db_config_file=db_config)
+    db.set_table(table)
+
+    ulm_cell = ULMCell()
+    cell = Cell(db)
+
+    for netlist in tqdm(list(ulm_cell.construct_extended_ulm_cells()), desc='EXT-ULM-cell'):
+        # search for those ulm-cells in lib and tag them
+        cell.init_based_on_netlist(netlist)
+        cell.add_to_family('EXT_ULM')
+
+    for netlist in tqdm(list(ulm_cell.construct_extended_ulm_inv_polarity_cells()), desc='EXT-ULM_inv_pol-cell'):
+        cell.init_based_on_netlist(netlist)
+        cell.add_to_family('EXT_ULM_INV_POL')
+
+
 def remove_non_shared_multi_cells(db_config, table):
     db = ArkDBMySQL(db_config_file=db_config)
     db.set_table(table)
@@ -204,6 +221,19 @@ def remove_non_shared_multi_cells(db_config, table):
         db.delete(id_cell, 'idCELL')
     if len(id_list) != 0:
         db.commit()
+    print(get_cell_cnt(db_config, table))
+
+
+def process_remove_nonminimal_strong(db_config, table, limit):
+    if limit[1] == 0:
+        return
+    elm = NonminimalEliminator(db_config, table)
+    elm.eliminate_nonminimal_cells(limit[0], limit[1], False)
+
+
+def remove_nonminimal_strong(db_config, table, num_cores):
+    Parallel(n_jobs=num_cores)(delayed(process_remove_nonminimal_strong)(db_config, table, i)
+                               for i in prepare(db_config, f'SELECT count(*) AS CNT FROM {table}', num_cores))
     print(get_cell_cnt(db_config, table))
 
 
@@ -253,6 +283,8 @@ def clean_up(db_config, table, source='RAW_DATA_LIB'):
     print('--- tagging ULM cells ---')
     tag_ulm_cell(db_config, table)
 
+    print('--- tagging EXT ULM cells ---')
+    tag_extended_ulm_cell(db_config, table)
     # print('---  ---')
 
     # check inclusive
