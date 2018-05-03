@@ -8,11 +8,11 @@ class Node:
     def __init__(self, name, netlist):
         self.owner_ = netlist
         self.name_ = name
-        self.terminals = set()
+        self.terminals_ = set()
 
     def __repr__(self):
         ret = f'<{self.__class__.__name__}>'+self.name_ + "\n"
-        for terminal in self.terminals:
+        for terminal in self.terminals_:
             ret += "\t" + repr(terminal) + "\n"
         return ret
 
@@ -26,16 +26,25 @@ class Node:
         return self.name_
 
     def remove_terminal(self, terminal):
-        if terminal in self.terminals:
-            self.terminals.remove(terminal)
+        if terminal in self.terminals_:
+            self.terminals_.remove(terminal)
         else:
             raise ValueError(f'terminal {terminal.get_node().get_name()} '
                              f'does not belong to {self.get_name()}. Please check id!')
-        if len(self.terminals) == 0:
+        if len(self.terminals_) == 0:
             self.owner_.remove_node(self)
 
     def add_terminal(self, terminal):
-        self.terminals.add(terminal)
+        self.terminals_.add(terminal)
+
+    def get_terminals(self):
+        return self.terminals_
+
+    def is_supply(self):
+        return self.get_name() == 'VDD' or self.get_name() == 'GND'
+
+    def is_pi(self):
+        return self.get_name()[:2] == 'IN'
 
 
 class Netlist:
@@ -99,6 +108,11 @@ class Netlist:
             return f'N{cnt:04}'
         else:
             raise ValueError(f'Unexpected group {name_group}')
+
+    def get_all_nodes(self):
+        for dict_name in ['supply', 'internal', 'out', 'in']:
+            for node in self.get_nodes_for_dict(dict_name):
+                yield node
 
     def get_max_cnt_for_dict(self, dict_name):
         if len(self.node_dicts_[dict_name]) == 0:
