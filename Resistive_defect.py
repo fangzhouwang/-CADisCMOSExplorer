@@ -56,8 +56,12 @@ class ResistiveDefect:
         self.short_defects_.clear()
         self.open_defects_.clear()
 
-    def reset_tg_netlist(self):
-        self.tg_netlist_.set_netlist("M1001 IN101 VDD IN102 GND NMOS\nM1002 IN101 GND IN102 VDD PMOS\n")
+    def reset_tg_netlist(self, is_open=False):
+        if is_open:
+            # constantly off TG
+            self.tg_netlist_.set_netlist("M1001 IN101 GND IN102 GND NMOS\nM1002 IN101 VDD IN102 VDD PMOS\n")
+        else:
+            self.tg_netlist_.set_netlist("M1001 IN101 VDD IN102 GND NMOS\nM1002 IN101 GND IN102 VDD PMOS\n")
 
     def gen_short_defect_str_netlist(self, short_defect):
         self.reset_tg_netlist()
@@ -121,7 +125,7 @@ class ResistiveDefect:
     def gen_open_defect_str_netlist(self, open_defect):
         defect_node_name = 'N1000'
 
-        self.reset_tg_netlist()
+        self.reset_tg_netlist(True)
         self.tg_netlist_.rename_node_only(open_defect[0], 'IN101')
         self.tg_netlist_.rename_node_only(defect_node_name, 'IN102')
 
