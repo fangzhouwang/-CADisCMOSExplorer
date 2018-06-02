@@ -10,6 +10,7 @@ from Compare_libraries import *
 from Multi_cell import *
 from ArkLibPy.ArkDBMySQL import ArkDBMySQL
 from ULM_cell import *
+from Resistive_defect import *
 
 
 # Utility functions
@@ -237,6 +238,20 @@ def remove_nonminimal_strong(db_config, table, num_cores):
     print(get_cell_cnt(db_config, table))
 
 
+def analyze_resistive_defect(db_config, table):
+    db = ArkDBMySQL(db_config_file=db_config)
+    db.set_table(table)
+
+    id_list = [
+        row['idCELL'] for row in
+        db.run_query_get_all_row(f"SELECT idCELL FROM {db.get_table()}")
+    ]
+
+    resistive_defect_analyzer = ResistiveDefect(db)
+    for id_cell in tqdm(id_list, desc='Resistive_defect'):
+        resistive_defect_analyzer.insert_defect_details_for_id_cell(id_cell)
+
+
 def clean_up(db_config, table, source='RAW_DATA_LIB'):
     print(f'--- duplicating {source} as {table} ---')
     duplicate_table(db_config, table, source)
@@ -285,11 +300,14 @@ def clean_up(db_config, table, source='RAW_DATA_LIB'):
 
     print('--- tagging EXT ULM cells ---')
     tag_extended_ulm_cell(db_config, table)
-    # print('---  ---')
 
+    print('--- analyzing resistive defects ---')
+    analyze_resistive_defect(db_config, table)
+
+    # print('---  ---')
     # check inclusive
     comp = CompareLibraries(db_config, table)
-    comp.is_subset_of('WORK_LIB')
+    comp.is_subset_of('WORK_LIB_OLD')
 
 
 if __name__ == '__main__':
@@ -302,4 +320,5 @@ if __name__ == '__main__':
         print(f'Error: DB_Config is not setup for {sys.platform} yet.')
         exit(1)
 
-    clean_up(local_db_config, 'NON_MINI_TEST')
+    clean_up(local_db_config, 'WORK_LIB', source='ONE_FIVE_LIB')
+    # analyze_resistive_defect(local_db_config, 'NON_MINI_TEST_NO_MULTI')
